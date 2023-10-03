@@ -1,5 +1,5 @@
 # ToDone
-_By Suhanth Alluri, Saba Hakimi, Liam Kbidy, Max Silver_  
+_By Suhanth Alluri (alluri), Saba Hakimi (sahakimi), Liam Kbidy (lkbidy), Maxwell Silver (msilve08)_  
 
 ## Overview
 ToDone is a simple to-do list application that allows users to create, edit, and delete tasks.
