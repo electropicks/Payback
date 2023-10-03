@@ -4,7 +4,10 @@ _By Suhanth Alluri, Saba Hakimi, Liam Kbidy, Max Silver_
 ## Overview
 ToDone is a simple to-do list application that allows users to create, edit, and delete tasks.
 Users can also mark tasks as complete and view their completed tasks.  
-ToDone is built using ReactJS and a postgres database in the backend.  
+ToDone is built using ReactJS and a postgres database in the backend to keep
+track of saved user todos.  
+Users are able to sign up to create an account and have the backend of the webapp
+keep track of their todos.
 
 ## Dream State
 Once the main todo-list aspect of the webapp is done, integrating the Canvas 
