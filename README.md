@@ -1,17 +1,12 @@
-# ToDone
+# TaskMaster
 _By Suhanth Alluri (alluri), Saba Hakimi (sahakimi), Liam Kbidy (lkbidy), Maxwell Silver (msilve08)_  
 
 ## Overview
-ToDone is a simple to-do list application that allows users to create, edit, and delete tasks.
-Users can also mark tasks as complete and view their completed tasks.  
-ToDone is built using ReactJS and a postgres database in the backend to keep
-track of saved user todos.  
-Users are able to sign up to create an account and have the backend of the webapp
-keep track of their todos.
+TaskMaster is a project tracking system for group projects where users create accounts and create teams to which accounts can be added. Users can create projects inside their teams, each with a list of tasks assigned to members and their status. Furthermore, tasks will have threads of questions, answers, and notes for team members to communicate on issues related to individual tasks
 
-## Dream State
-Once the main todo-list aspect of the webapp is done, integrating the Canvas 
-API to allow users to add assignments to their to-do list will become a possibility.
+Backlogs of tasks can be added through integration of the Canvas API, and the persistence layer could track analytics related to project contribution.
+
+TaskMaster is built using ReactJS and a postgres database in the backend to keep track of saved user todos. Users are able to sign up to create an account and have the backend of the webapp keep track of their todos.
 
 ### Usage
 This project uses `yarn`  
