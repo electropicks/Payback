@@ -1,35 +1,65 @@
 ### Workflow 1: Forgot Password
 
 **User Story**: As a user, I forgot my password, so now I need to go through the Forgot Password workflow.
+1. User creates a new account with POST /user
 
-1. User initiates the Forgot Password workflow:
+2. User forgets password, so they initiate the Forgot Password workflow `POST /user/forgot-password`:
 
    ```
    POST /forgot-password
    Request Body:
    {
        "email": "user@example.com"
+       "hash": as87a8f0f-a
    }
+   
+   Returns status 200
    ```
 
    The system sends a password reset email to the provided email address.
 
-### Workflow 2: Creating an Account with Google
+### Workflow 2: Creating and updating Teams
 
-**User Story**: As a user, I want to easily create an account, so I can just use my Google account.
+**User Story**: As a user, I want to create a new Team with different members.
+1. Create new team:
+   ```json
+   POST /teams
+   Request Body:
+   {
+    "name": "Team A",
+    "description": "A team of students working on projects."
+   }
 
-1. User initiates the Google Sign-Up workflow:
-
+   Returns:
+   {team_id: integer}
    ```
-   GET /auth/google
+2. Add member to team:
+   ```json
+   POST /teams/id/add
+   Request Body:
+   {
+      "user_id": integer
+   }
+   
+   Returns: Status 200
    ```
-
-   The system redirects the user to Google for authentication.
-
-2. Upon successful Google authentication, the system creates a new account using the Google account details.
+3. List team members:
+   ```json
+   GET /teams/id/members
+   Returns:
+   {
+      members: [
+         {
+            "name",
+            "user_id",
+            "email"
+         }
+      ]
+   }
+   ```
 
 ### Workflow 3: Creating, Assigning, and Editing Tasks within a Project
-
+**User Story**: As a user, I want to be able to create, join, view and edit my team, so that I can ensure I am in the right team for my project.
 1. Creates a new project for the team:
 
 ```json
@@ -46,10 +76,9 @@ Request Body:
 2. Add tasks to the project:
 
 ```json
-POST /tasks
+POST /tasks/?id={project_id}
 Request Body:
 {
-    "project_id": 1,
     "title": "Task 1",
     "description": "Description of Task 1",
     "due_date": "2023-12-31",
