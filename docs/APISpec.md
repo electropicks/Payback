@@ -15,11 +15,7 @@ https://api.projectplanner.com/v1
 
 #### Teams
 
-##### 1. List Teams
-- `GET /teams`
-- Get a list of all teams.
-
-##### 2. Create Team
+##### 1. Create Team
 - `POST /teams`
 - Create a new team.
 - Request Body:
@@ -29,12 +25,18 @@ https://api.projectplanner.com/v1
     "description": "A team of students working on projects."
   }
   ```
+- Return Body:
+  ```json
+  {
+    "team_id": 11
+  }
+  ```  
 
-##### 3. Get Team Details
+##### 2. Get Team Details
 - `GET /teams/{team_id}`
 - Get details of a specific team by ID.
 
-##### 4. Update Team
+##### 3. Update Team
 - `PUT /teams/{team_id}`
 - Update team information.
 - Request Body:
@@ -45,47 +47,72 @@ https://api.projectplanner.com/v1
   }
   ```
 
-##### 5. Delete Team
+##### 4. Delete Team
 - `DELETE /teams/{team_id}`
 - Delete a team and its associated projects.
 
-#### Students
 
-##### 1. List Students
-- `GET /students`
-- Get a list of all students.
+##### 4. List Team Members
+- `GET /teams/id/members`
+- Get a list of all members.
 
-##### 2. Create Student
-- `POST /students`
+##### 6. Add Team Member
+- `POST /teams/id/add`
 - Create a new student.
 - Request Body:
   ```json
   {
-    "name": "John Doe",
-    "email": "john@example.com",
-    "team_id": 1
+    "user_id" : 123
   }
   ```
 
-##### 3. Get Student Details
-- `GET /students/{student_id}`
-- Get details of a specific student by ID.
+#### Users 
 
-##### 4. Update Student
-- `PUT /students/{student_id}`
+##### 1. Create User
+- `POST /user`
+- Create a new user.
+- Request Body:
+  ```json
+  {
+    "name": "John Doe",
+    "email": "johndoe@example.com"
+    "password": 123Pass
+  }
+  ```
+- Return Body:
+  ```json
+  {
+    "user_id": 12
+  }
+  ```  
+
+##### 4. Update User
+- `PUT /user/{user_id}`
 - Update student information.
 - Request Body:
   ```json
   {
-    "name": "Jane Smith",
-    "email": "jane@example.com",
-    "team_id": 2
+    "user_id": 2
   }
   ```
 
-##### 5. Delete Student
-- `DELETE /students/{student_id}`
+##### 5. Delete User
+- `DELETE /user/{user_id}`
 - Delete a student and reassign their projects.
+  - Request Body:
+  ```json
+  {
+    "user_id": 2
+  }
+  ```
+##### 6. Forgot Password
+- `POST /user/forgot-password`
+- Update password
+Request Body:
+{
+    "email": "user@example.com"
+    "hash": 32904u203848u03
+}
 
 #### Projects
 
