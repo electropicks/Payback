@@ -1,3 +1,4 @@
+
 ## Project Planning API Specification
 
 ### Base URL
@@ -125,6 +126,51 @@ https://api.projectplanner.com/v1
 ##### 5. Delete Project
 - `DELETE /projects/{project_id}`
 - Delete a project.
+
+#### Tasks
+
+##### 1. List Tasks
+- `GET /tasks`
+- Get a list of all tasks for a project.
+
+##### 2. Create Task
+- `POST /tasks`
+- Create a new task for a project.
+- Request Body:
+  ```json
+  {
+    "project_id": 1,
+    "title": "Task 1",
+    "description": "Description of Task 1",
+    "due_date": "2023-12-31",
+    "assigned_to": 2
+  }
+  ```
+
+##### 3. Get Task Details
+- `GET /tasks/{task_id}`
+- Get details of a specific task by ID.
+
+##### 4. Update Task
+- `PUT /tasks/{task_id}`
+- Update task information.
+- Request Body:
+  ```json
+  {
+    "title": "Updated Task Title",
+    "description": "Updated task description",
+    "due_date": "2024-02-15",
+    "assigned_to": 3
+  }
+  ```
+
+##### 5. Delete Task
+- `DELETE /tasks/{task_id}`
+- Delete a task.
+
+##### Task Metadata
+
+Tasks may have additional metadata. Metadata can be set using custom fields or attributes, allowing you to customize the information associated with each task according to your specific requirements.
 
 ### Pagination
 - API responses that return multiple items support pagination via query parameters (e.g., `page` and `per_page`).
