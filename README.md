@@ -1,12 +1,10 @@
-# TaskMaster
+# Payback
 _By Suhanth Alluri (alluri), Saba Hakimi (sahakimi), Liam Kbidy (lkbidy), Maxwell Silver (msilve08)_  
 
 ## Overview
-TaskMaster is a project tracking system for group projects where users create accounts and create teams to which accounts can be added. Users can create projects inside their teams, each with a list of tasks assigned to members and their status. Furthermore, tasks will have threads of questions, answers, and notes for team members to communicate on issues related to individual tasks
+Payback is a roommate expense tracking system. This system would be able to keep track of a household group made up of users, and users can add their expenses for groceries, rent, furniture, staples, etc... The group can decide what percentage is paid by who, at which point the money due to each other user for their expense is decided, based on who bought what.
 
-Backlogs of tasks can be added through integration of the Canvas API, and the persistence layer could track analytics related to project contribution.
-
-TaskMaster is built using ReactJS and a postgres database in the backend to keep track of saved user todos. Users are able to sign up to create an account and have the backend of the webapp keep track of their todos.
+Payback is built using ReactJS and a postgres database in the backend to keep track of saved expenses. Users are able to sign up to create an account and have the backend of the webapp keep track of group expenses.
 
 ### Usage
 This project uses `yarn`  
