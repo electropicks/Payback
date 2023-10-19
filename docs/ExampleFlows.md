@@ -1,98 +1,19 @@
-### Workflow 1: Forgot Password
+### Workflow 1: Create New Group
 
-**User Story**: As a user, I forgot my password, so now I need to go through the Forgot Password workflow.
-1. User creates a new account with POST /user
+**User Story**: Suhanth wants to create a group for him and his roommates to start tracking their shared expenses. He starts by registering his account:
+- Suhanth sends a POST request to /api/auth/register with his registration details, including a username, password, and email.
+- After registration, he logs in by sending a POST request to /api/auth/login with his username and password.
+- He then makes another POST request to `/api/groups` to create the group.
+- His roommates can now call POST `/api/groups/{group_id}/join` to join the group and begin tracking their expenses together.
 
-2. User forgets password, so they initiate the Forgot Password workflow `POST /user/forgot-password`:
+### Workflow 2: Tracking Expenses
 
-   ```
-   POST /forgot-password
-   Request Body:
-   {
-       "email": "user@example.com"
-       "hash": as87a8f0f-a
-   }
-   
-   Returns status 200
-   ```
+**User Story**: Vasanth just got back from a grocery trip with his roommates, where one of his roommates, Suhanth just paid for all of the purchases. He wants to make sure everyone is aware of how much they have to pay Suhanth since they don't all eat the same foods and don't want to pay for groceries they won't be able to make use of. He already has a group set up with all of his roommates so he just needs to start adding the expenses.
+- He makes multiple POST requests to `/api/groups/{group_id}/expenses/{expense_id}` to add all of the items individually. He includes that Suhanth made the purchase for each item, and passes in the names of all roommates that will be paying for each item. 
+- He then makes a GET request to `/api/groups/{group_id}/calculate` to see how much each person owes Suhanth.
+- After finding out how much he owes, he Venmos Suhanth and makes a POST request to `/api/groups/{group_id}/transactions` to record how much he paid him.
 
-   The system sends a password reset email to the provided email address.
-
-### Workflow 2: Creating and updating Teams
-
-**User Story**: As a user, I want to create a new Team with different members.
-1. Create new team:
-   ```json
-   POST /teams
-   Request Body:
-   {
-    "name": "Team A",
-    "description": "A team of students working on projects."
-   }
-
-   Returns:
-   {team_id: integer}
-   ```
-2. Add member to team:
-   ```json
-   POST /teams/id/add
-   Request Body:
-   {
-      "user_id": integer
-   }
-   
-   Returns: Status 200
-   ```
-3. List team members:
-   ```json
-   GET /teams/id/members
-   Returns:
-   {
-      members: [
-         {
-            "name",
-            "user_id",
-            "email"
-         }
-      ]
-   }
-   ```
-
-### Workflow 3: Creating, Assigning, and Editing Tasks within a Project
-**User Story**: As a user, I want to be able to create, join, view and edit my team, so that I can ensure I am in the right team for my project.
-1. Creates a new project for the team:
-
-```json
-POST /projects
-Request Body:
-{
-    "name": "Project X",
-    "description": "A project for Team A",
-    "team_id": 1,
-    "due_date": "2023-12-31"
-}
-```
-
-2. Add tasks to the project:
-
-```json
-POST /tasks/?id={project_id}
-Request Body:
-{
-    "title": "Task 1",
-    "description": "Description of Task 1",
-    "due_date": "2023-12-31",
-    "assigned_to": 2
-}
-```
-3. Edit a task within the project:
-  ```json
-   PUT /tasks/1
-   Request Body:
- {
-      "title": "Updated Task Title",
-      "description": "Updated task description",
-      "due_date": "2024-02-15",
-      "assigned_to": 3
- }
-  ```
+### Workflow 3: Correcting an Error
+**User Story**: Mark argues with his roommate over the fact that he paid him for lunch yesterday, but his roommate is convinced that he didn't. 
+- Mark decides to verify the transactions through the app and makes a GET request to `/api/groups/{group_id}/transactions` to show his roommate.
+- His roommate then shows that Mark never actually sent him the payment despite recording it in the app, and mark realizes he forgot to actually pay his roommate. It turns out he also doesn't have enough money to pay him back at the moment, so he decides to remove that transaction for the time being to accurately represent how much he owes his roommate in the app, so he makes a DELETE request to `/api/groups/{group_id}/transactions`
