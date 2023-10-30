@@ -12,7 +12,7 @@ router = APIRouter(
 )
 
 class User(BaseModel):
-  email: str
+  userId: str
 @router.post("/")
 def getUserGroups(user: User):
   """
@@ -23,8 +23,31 @@ def getUserGroups(user: User):
       """
       SELECT groups.name FROM groups
       JOIN group_members ON group_members.group_id = groups.id
-      JOIN users ON users.id = group_members.user_id
+      JOIN users ON users.id = group_members.user_id AND users.id = :userId
       """
-    ))
+    ), {"userId": int(user.userId)})
     json = [{"name": group.name} for group in groups]
     return json
+
+class Group(BaseModel):
+  userId: str
+  name: str
+@router.post("/create")
+def createGroup(group: Group):
+  with db.engine.begin() as connection:
+    groupId = connection.execute(sqlalchemy.text(
+      """
+      INSERT INTO groups (name, owner)
+      VALUES (:name, :owner)
+      RETURNING id
+      """
+    ), {"name": group.name, "owner": int(group.userId)}).scalar_one()
+
+    connection.execute(sqlalchemy.text(
+      """
+      INSERT INTO group_members (group_id, user_id)
+      VALUES (:groupId, :ownerId)
+      """
+    ), {"groupId": groupId, "ownerId": group.userId})
+
+    return {"group_id": groupId}
