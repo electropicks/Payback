@@ -3,7 +3,7 @@
 **User Story**: Suhanth wants to create a group for him and his roommates to start tracking their shared expenses. He starts by registering his account:
 - Suhanth sends a POST request to /api/auth/register with his registration details, including a username, password, and email.
 - After registration, he logs in by sending a POST request to /api/auth/login with his username and password.
-- He then makes another POST request to `/api/groups` to create the group.
+- He then makes another POST request to `/api/groups/register` to create the group.
 - His roommates can now call POST `/api/groups/{group_id}/join` to join the group and begin tracking their expenses together.
 
 ### Workflow 2: Tracking Expenses
