@@ -5,7 +5,7 @@
 - After registration, he logs in by sending a POST request to /api/auth/login with his username and password.
 - He then makes another POST request to `/api/groups/register` to create the group.
 - His roommates can now call POST `/api/groups/{group_id}/join` to join the group and begin tracking their expenses together.
-- He also wants to verify that his group was created, so he calls POST /groups/ and sees his group show up. He confirms his group was created.
+- He also wants to verify that his group was created, so he calls POST `/groups/` and sees his group show up. He confirms his group was created.
 
 ### Workflow 2: Tracking Expenses
 
