@@ -13,6 +13,7 @@ router = APIRouter(
 
 class User(BaseModel):
   userId: str
+
 @router.post("/")
 def getUserGroups(user: User):
   """
@@ -32,7 +33,9 @@ def getUserGroups(user: User):
 class Group(BaseModel):
   userId: str
   name: str
-@router.post("/create")
+
+
+@router.post("/register")
 def createGroup(group: Group):
   with db.engine.begin() as connection:
     groupId = connection.execute(sqlalchemy.text(
@@ -51,3 +54,15 @@ def createGroup(group: Group):
     ), {"groupId": groupId, "ownerId": group.userId})
 
     return {"group_id": groupId}
+
+@router.post("/{group_id}/join")
+def joinGroup(group_id: int, user_id: int):
+    with db.engine.begin() as connection:
+      connection.execute(sqlalchemy.text(
+      """
+      INSERT INTO group_members (group_id, user_id)
+      VALUES (:group_id, :user_id)
+      """
+    ), {"group_id": group_id, "user_id": user_id})
+    return {"message": "User joined the group successfully."}
+
