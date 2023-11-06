@@ -1,68 +1,81 @@
+import sqlalchemy
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from src.api import auth
+from sqlalchemy.orm import Session
 
-import sqlalchemy
 from src import database as db
+from src.database import get_db, Transaction, GroupMember
 
 router = APIRouter(
     prefix="/groups",
     tags=["groups"],
-    dependencies=[Depends(auth.get_api_key)],
 )
 
+
 class User(BaseModel):
-  userId: str
+    userId: str
+
 
 @router.post("/")
-def getUserGroups(user: User):
-  """
-  Gets all groups that user is in.
-  """
-  with db.engine.begin() as connection:
-    groups = connection.execute(sqlalchemy.text(
-      """
-      SELECT groups.name FROM groups
-      JOIN group_members ON group_members.group_id = groups.id
-      JOIN users ON users.id = group_members.user_id AND users.id = :userId
-      """
-    ), {"userId": int(user.userId)})
-    json = [{"name": group.name} for group in groups]
+def get_user_groups(user: User, db: Session = Depends(get_db)):
+    """
+    Gets all groups that the user is in.
+    """
+    # Assuming 'User' model has a relationship 'group_memberships' to 'GroupMember' model
+    # and 'GroupMember' model has a 'group' relationship to 'Group' model
+    user_groups = (
+        db.query(Group.name)
+        .join(GroupMember, GroupMember.group_id == Group.id)
+        .join(User, User.id == GroupMember.user_id)
+        .filter(User.id == int(user.userId))
+        .all()
+    )
+
+    # Convert query results to list of dictionaries as required by the API response format
+    json = [{"name": group.name} for group in user_groups]
     return json
 
+
 class Group(BaseModel):
-  userId: str
-  name: str
+    userId: str
+    name: str
 
 
 @router.post("/register")
-def createGroup(group: Group):
-  with db.engine.begin() as connection:
-    groupId = connection.execute(sqlalchemy.text(
-      """
-      INSERT INTO groups (name, owner)
-      VALUES (:name, :owner)
-      RETURNING id
-      """
-    ), {"name": group.name, "owner": int(group.userId)}).scalar_one()
+def create_group(group: Group, db: Session = Depends(get_db)):
+    new_group = Group(name=group.name, owner=int(group.userId))
+    db.add(new_group)
+    db.flush()  # This will assign an ID to new_group without committing the transaction
 
-    connection.execute(sqlalchemy.text(
-      """
-      INSERT INTO group_members (group_id, user_id)
-      VALUES (:groupId, :ownerId)
-      """
-    ), {"groupId": groupId, "ownerId": group.userId})
+    new_group_member = GroupMember(group_id=new_group.id, user_id=new_group.owner)
+    db.add(new_group_member)
 
-    return {"group_id": groupId}
+    db.commit()  # Commit both new_group and new_group_member to the database
+
+    return {"group_id": new_group.id}
+
 
 @router.post("/{group_id}/join")
-def joinGroup(group_id: int, user_id: int):
-    with db.engine.begin() as connection:
-      connection.execute(sqlalchemy.text(
-      """
-      INSERT INTO group_members (group_id, user_id)
-      VALUES (:group_id, :user_id)
-      """
-    ), {"group_id": group_id, "user_id": user_id})
+def join_group(group_id: int, user_id: int, db: Session = Depends(get_db)):
+    """"""
+    new_group_member = GroupMember(group_id=group_id, user_id=user_id)
+    db.add(new_group_member)
+    db.commit()
+
     return {"message": "User joined the group successfully."}
 
+
+@router.get("/{group_id}/transactions")
+def list_group_transactions(group_id: int, user_id: int, db: Session = Depends(get_db)):
+    transactions = db.query(Transaction).filter(Transaction.group_id == group_id).all()
+    payload = []
+    for transaction in transactions:
+        payload.append({
+            "transaction_id": transaction.id,
+            "from_user_id": transaction.from_user_id,
+            "to_user_id": transaction.to_user_id,
+            "amount": transaction.amount,
+            "description": transaction.description,
+            "date": transaction.date
+        })
+    return {"transactions": payload}

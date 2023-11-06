@@ -23,6 +23,7 @@ app = FastAPI(
 )
 
 app.include_router(groups.router)
+app.include_router(users.router)
 
 @app.exception_handler(ValidationError)
 async def validation_exception_handler(request, exc):
