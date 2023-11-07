@@ -194,6 +194,29 @@ def get_trip(group_id: int, trip_id: int):
             "createdAt": trip.created_at
         }
 
+@router.get("/{group_id}/trips/{trip_id}/items")
+def get_trip_items(group_id: int, trip_id: int):
+    with db.engine.begin() as connection:
+        returnBody = []
+        items = connection.execute(sqlalchemy.text(
+            """
+            SELECT item_name, price, quantity
+            FROM shopping_trips
+            JOIN line_items ON shopping_trips.id = line_items.trip_id
+            WHERE shopping_trips.id = :trip_id
+            AND group_id = :group_id
+            """
+        ), {"group_id": group_id, "trip_id": trip_id}).all()
+        for item in items:
+            returnBody.append(
+                {
+                    "Item Name" : item.item_name,
+                    "Price" : item.price,
+                    "Quanity" : item.quantity
+                }
+            )
+        return returnBody
+
 class Item(BaseModel):
     name: str
     price: float
