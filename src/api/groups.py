@@ -89,6 +89,30 @@ def list_group_transactions(group_id: int):
 
         return {"transactions": payload}
 
+class newTransaction(BaseModel):
+    trip_id: int
+    from_id: int
+    to_id: int
+    amount: float
+    description: str
+
+@router.post("/{group_id}/transactions")
+def add_transactions(newT: newTransaction, group_id: int):
+    with db.engine.begin() as connection:
+        transaction_id = connection.execute(sqlalchemy.text(
+            """
+            INSERT INTO transactions (description, trip_id, group_id)
+            VALUES (:desc, :trip, :group_id)
+            RETURNING id
+            """
+        ), {"desc": newT.description, "trip": newT.trip_id, "group_id": group_id}).scalar_one()
+        connection.execute(sqlalchemy.text(
+            """
+            INSERT INTO transaction_ledger (transaction_id, to_id, from_id, change)
+            VALUES (:transaction_id, :to_id, :from_id, :amount)
+            """
+        ), {"transaction_id": transaction_id, "from_id": newT.from_id, "to_id": newT.to_id, "amount":newT.amount})
+    return "OK"
 
 @router.get("/{group_id}/trips")
 def list_group_trips(group_id: int):
@@ -120,6 +144,7 @@ def list_group_trips(group_id: int):
 
 class Transaction(BaseModel):
     transaction_id: str
+
 @router.post("/{group_id}/trips/{trip_id}/delete")
 def delete_transaction(transaction_id: Transaction, group_id: int, trip_id: int):
     with db.engine.begin() as connection:
@@ -201,11 +226,11 @@ def add_line_item(body: AddLineItem, group_id: int, trip_id: int):
 
         transaction_id = connection.execute(sqlalchemy.text(
             """
-            INSERT INTO transactions (description, trip_id)
-            VALUES (:desc, :trip)
+            INSERT INTO transactions (description, trip_id, group_id)
+            VALUES (:desc, :trip, :group_id)
             RETURNING id
             """
-        ), {"desc": "Paid for trip", "trip": trip_id}).scalar_one()
+        ), {"desc": "Paid for trip", "trip": trip_id, "group_id": group_id}).scalar_one()
 
         connection.execute(sqlalchemy.text(
             """

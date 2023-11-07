@@ -42,6 +42,20 @@ curl -X 'POST' \
   }
 ]
 
+curl -X 'POST' \
+  'http://127.0.0.1:3000/groups/3/transactions' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "trip_id": 1,
+  "from_id": 1,
+  "to_id": 2,
+  "amount": 33,
+  "description": "Vasanth paid Suhanth (venmo)"
+}'
+
+"OK"
+
 ### Workflow 3: Correcting an Error
 **User Story**: Mark argues with his roommate over the fact that he paid him for lunch yesterday, but his roommate is convinced that he didn't. 
 - Mark decides to verify the transactions through the app and makes a GET request to `/api/groups/{group_id}/transactions` to show his roommate.
