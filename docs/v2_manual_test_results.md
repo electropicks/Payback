@@ -6,7 +6,7 @@
 - After finding out how much he owes, he Venmos Suhanth and makes a POST request to `/api/groups/{group_id}/transactions` to record how much he paid him.
 
 curl -X 'POST' \
-  'http://127.0.0.1:3000/groups/1/trips/1/add' \
+  'http://payback-app-rjwr.onrender.com/groups/1/trips/1/add' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -24,7 +24,7 @@ curl -X 'POST' \
 "OK"
 
 curl -X 'POST' \
-  'http://127.0.0.1:3000/groups/calculate' \
+  'http://payback-app-rjwr.onrender.com/groups/calculate' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -43,7 +43,7 @@ curl -X 'POST' \
 ]
 
 curl -X 'POST' \
-  'http://127.0.0.1:3000/groups/3/transactions' \
+  'http://payback-app-rjwr.onrender.com/groups/3/transactions' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -62,7 +62,7 @@ curl -X 'POST' \
 - His roommate then shows that Mark never actually sent him the payment despite recording it in the app, and mark realizes he forgot to actually pay his roommate. It turns out he also doesn't have enough money to pay him back at the moment, so he decides to remove that transaction for the time being to accurately represent how much he owes his roommate in the app, so he makes a DELETE request to `/api/groups/{group_id}/transactions`
 
 curl -X 'GET' \
-  'http://127.0.0.1:3000/groups/1/transactions' \
+  'http://payback-app-rjwr.onrender.com/groups/1/transactions' \
   -H 'accept: application/json'
 
 {
@@ -85,7 +85,7 @@ curl -X 'GET' \
 }
 
 curl -X 'POST' \
-  'http://127.0.0.1:3000/groups/1/trips/1/delete' \
+  'http://payback-app-rjwr.onrender.com/groups/1/trips/1/delete' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
