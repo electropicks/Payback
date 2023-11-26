@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from src import database as db
-from src.database import get_db, GroupMember, Group, User
+from src.database import get_db, GroupMember, Group
 
 router = APIRouter(
     prefix="/groups",
