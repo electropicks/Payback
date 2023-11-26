@@ -1,11 +1,11 @@
-from fastapi import FastAPI, exceptions
-from fastapi.responses import JSONResponse
-from pydantic import ValidationError
-from src.api import users, groups, transactions, trips
 import json
 import logging
-import sys
-from starlette.middleware.cors import CORSMiddleware
+
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from pydantic import ValidationError
+
+from src.api import auth, groups, transactions, trips
 
 description = """
 Get what you are owed.
@@ -25,7 +25,8 @@ app = FastAPI(
 app.include_router(groups.router)
 app.include_router(transactions.router)
 app.include_router(trips.router)
-# app.include_router(users.router)
+app.include_router(auth.router)
+
 
 @app.exception_handler(ValidationError)
 async def validation_exception_handler(request, exc):
@@ -36,6 +37,7 @@ async def validation_exception_handler(request, exc):
         response['message'].append(f"{error['loc']}: {error['msg']}")
 
     return JSONResponse(response, status_code=422)
+
 
 @app.get("/")
 async def root():

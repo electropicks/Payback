@@ -4,8 +4,6 @@
 ```
 https://api.payback.com/v1
 ```
-### Authentication
-- API requests require authentication through OAuth2 or API keys.
 
 ### Error Handling
 - The API returns appropriate HTTP status codes and error messages in JSON format for error handling.
@@ -30,7 +28,7 @@ https://api.payback.com/v1
   }
   ```
 
-#### To log in and obtain a JWT token for authentication - POST /api/auth/login
+#### To log in - POST /api/auth/login
 - Request Body:
   ```json
   {
@@ -42,7 +40,6 @@ https://api.payback.com/v1
   ```json
   {
     "message": "Login successful",
-    "token": "your.jwt.token.here"
   }
   ```
 ### User
