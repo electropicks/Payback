@@ -2,10 +2,9 @@ import sqlalchemy
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from typing import List
 
 from src import database as db
-from src.database import get_db, Transaction, ShoppingTrip, GroupMember, Group, User
+from src.database import get_db, GroupMember, Group, User
 
 router = APIRouter(
     prefix="/groups",
@@ -17,6 +16,15 @@ class User(BaseModel):
     userId: str
 
 
+class Group(BaseModel):
+    userId: str
+    name: str
+
+
+class Body(BaseModel):
+    userId: str
+
+
 @router.post("/")
 def get_user_groups(user: User):
     """
@@ -25,20 +33,16 @@ def get_user_groups(user: User):
     with db.engine.begin() as connection:
         groups = connection.execute(sqlalchemy.text(
           """
-          SELECT groups.id, groups.name FROM groups
+          SELECT groups.id, groups.name 
+          FROM groups
           JOIN group_members ON group_members.group_id = groups.id
-          JOIN users ON users.id = group_members.user_id AND users.id = :userId
+          WHERE user_id = :userId
           """
         ), {"userId": int(user.userId)})
 
     # Convert query results to list of dictionaries as required by the API response format
     json = [{"name": group.name, "groupId": group.id} for group in groups]
     return json
-
-
-class Group(BaseModel):
-    userId: str
-    name: str
 
 
 @router.post("/register")
@@ -65,6 +69,7 @@ def join_group(group_id: int, user_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return {"message": "User joined the group successfully."}
+
 
 @router.get("/{group_id}/transactions")
 def list_group_transactions(group_id: int):
@@ -93,6 +98,7 @@ def list_group_transactions(group_id: int):
             })
 
         return {"transactions": payload}
+
 
 @router.get("/{group_id}/trips")
 def list_group_trips(group_id: int):
@@ -123,8 +129,7 @@ def list_group_trips(group_id: int):
             })
         return {"trips": payload}
 
-class Body(BaseModel):
-    userId: str
+
 @router.post("/calculate")
 def calculate(body: Body):
   with db.engine.begin() as connection:

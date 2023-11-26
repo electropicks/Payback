@@ -3,16 +3,17 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import List
+from fastapi.responses import JSONResponse
 
 from src import database as db
 from src.database import get_db, Transaction, ShoppingTrip, GroupMember, Group, User
 
 router = APIRouter(
-    prefix="/groups",
-    tags=["groups"],
+    prefix="/transactions",
+    tags=["transactions"],
 )
 
-class newTransaction(BaseModel):
+class Transaction(BaseModel):
     trip_id: int
     from_id: int
     to_id: int
@@ -20,7 +21,7 @@ class newTransaction(BaseModel):
     description: str
 
 @router.post("/add")
-def add_transaction(newT: newTransaction, group_id: int):
+def add_transaction(newT: Transaction, group_id: int):
     """
     Adds a transaction to the trip.
     Finds groupId from tripId.
@@ -49,7 +50,7 @@ def add_transaction(newT: newTransaction, group_id: int):
     return "OK"
 
 @router.post("/{trip_id}/delete")
-def delete_transaction(transaction_id: Transaction, group_id: int, trip_id: int):
+def delete_transaction(transaction_id: Transaction):
     """
     Deletes transaction from ledger and inserts inverse 
     """
@@ -60,4 +61,5 @@ def delete_transaction(transaction_id: Transaction, group_id: int, trip_id: int)
             WHERE id = :id
             """
         ), {"id": transaction_id})
-        return "OK"
+        
+    return "OK"
