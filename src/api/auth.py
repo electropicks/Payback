@@ -61,7 +61,7 @@ def login(username: str, password: str):
             """),
             {"username": username}
         ).first()
-        if result.rowcount == 0:
+        if result is None:
             payload = "Incorrect username"
             return {
                 "message": payload
