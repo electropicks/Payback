@@ -63,24 +63,19 @@ def login(username: str, password: str):
         )
         for row in result:
             if row.password == password:
-                connection.execute(sqlalchemy.text(
+                successful = True
+                payload = "User logged in successfully"
+            else:
+                successful = False
+                payload = "Incorrect password"
+            connection.execute(sqlalchemy.text(
                     """
                     INSERT INTO auth_ledger (action, username, email, user_id, successful)
                     VALUES (:action, :username, :email, :user_id, :successful)
                     """),
-                    {"action": "LOGIN", "username": username, "email": row.email, "user_id": row.id, "successful": True}
+                    {"action": "LOGIN", "username": username, "email": row.email, "user_id": row.id, "successful": successful}
                 )
-                payload = "User logged in successfully"
-            else:
-                connection.execute(sqlalchemy.text(
-                    """
-                    INSERT INTO auth_ledger (action, username, email, user_id, successful)
-                    VALUES (:action, :username, email, :user_id, :successful)
-                    """),
-                    {"action": "LOGIN", "username": username, "email": row.email, "user_id": row.id, "successful": False}
-                )
-                payload = "Incorrect password"
-
+            
     return {
         "message": payload
     }
