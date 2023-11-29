@@ -140,6 +140,7 @@ https://api.payback.com/v1
   ```
 
 #### Search Line Items - POST /api/groups/{group_id}/search
+**Complex** 
 - Request Body:
   ```json
   {
@@ -169,6 +170,7 @@ https://api.payback.com/v1
   ```
 
 #### Search Line Items By Trip - POST /api/groups/{group_id}/searchByTrip
+**Complex**
 - Request Body:
   ```json
   {
@@ -270,7 +272,7 @@ https://api.payback.com/v1
   ```
 ### Calculate
 #### Calculate Amount Owed GET /api/groups/{group_id}/calculate**
-** Complex **
+**Complex**
 - Response Body:
   ```json
   {
@@ -331,5 +333,14 @@ https://api.payback.com/v1
   ```json
   {
     "message": "Payment transaction deleted successfully."
+  }
+  ```
+
+#### Update Item Price - POST /api/trips/{trip_id}/update_item_price
+- Request Body:
+  ```json
+  {
+    "item_id": 123,
+    "price": 15.50
   }
   ```

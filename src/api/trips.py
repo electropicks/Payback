@@ -137,3 +137,17 @@ def add_line_items(body: AddLineItem, group_id: int, trip_id: int):
             """
         ), {"transaction_id": transaction_id, "from_id": body.userId, "group_id": group_id})
         return "OK"
+
+@router.post("/{trip_id}/update_item_price")
+def update_item_price(trip_id: int, item_id: int, price: float):
+    with db.engine.connect.execution_options(isolation_level="SERIALIZABLE") as conn:
+        with conn.begin() as connection:
+            connection.execute(sqlalchemy.text(
+                """
+                UPDATE line_items
+                SET price = :price
+                WHERE id = :item_id
+                AND trip_id = :trip_id
+                """
+            ), {"price": price, "item_id": item_id, "trip_id": trip_id})
+            return "OK"
