@@ -163,7 +163,7 @@ def calculate(user_id, group_id):
         res = connection.execute(sqlalchemy.text(
             """
             WITH paid_balance AS (
-            SELECT user_id AS person_id,
+            SELECT user_id,
                 SUM(CASE WHEN from_id = :user_id AND to_id = user_id THEN change ELSE 0 END) AS amount_paid,
                 SUM(CASE WHEN to_id = :user_id AND from_id = user_id THEN change ELSE 0 END) AS amount_owed
             FROM transaction_ledger
@@ -172,10 +172,50 @@ def calculate(user_id, group_id):
             WHERE (from_id = :user_id OR to_id = :user_id) AND transactions.group_id = :group_id
             GROUP BY user_id
             )
-            SELECT person_id, SUM(amount_owed - amount_paid) AS balance
+            SELECT user_id, SUM(amount_owed - amount_paid) AS balance
             FROM paid_balance
-            WHERE person_id != :user_id
-            GROUP BY person_id
+            WHERE user_id != :user_id
+            GROUP BY user_id
             """
         ), {"user_id": user_id, "group_id": group_id})
-    return [{"userId": row.user_id, "amount": row.amount} for row in res]
+    return [{"userId": row.user_id, "amount": row.balance} for row in res]
+
+@router.post("/search")
+def search_line_items(group_id: int, query: str):
+    """
+    Searches for line items in the group's shopping trips
+    """
+    validate_group(group_id)
+
+    with db.engine.begin() as connection:
+        res = connection.execute(sqlalchemy.text(
+            """
+            SELECT line_items.id, line_items.quantity, line_items.price, line_items.item_name, shopping_trips.id AS trip_id, shopping_trips.description AS trip_description
+            FROM line_items
+            JOIN shopping_trips ON line_items.trip_id = shopping_trips.id
+            WHERE shopping_trips.group_id = :group_id AND line_items.item_name ILIKE :query
+            """
+        ), {"group_id": group_id, "query": f"%{query}%"}).fetchall()
+        return [{"lineItemId": row.id, "quantity": row.quantity, "price": row.price, "item_name": row.item_name, "tripId": row.trip_id, "tripDescription": row.trip_description} for row in res]
+        
+@router.post("/searchByTrip")
+def search_line_items_by_trip(trip_id: int, query: str):
+    """
+    Searches for line items in the group's shopping trips
+    """
+
+    with db.engine.begin() as connection:
+        validTrip = connection.execute(sqlalchemy.text(
+            """
+            SELECT * FROM 
+            """
+        ))
+        res = connection.execute(sqlalchemy.text(
+            """
+            SELECT line_items.id, line_items.quantity, line_items.price, line_items.item_name, shopping_trips.description AS trip_description
+            FROM line_items
+            JOIN shopping_trips ON line_items.trip_id = shopping_trips.id
+            WHERE shopping_trips.id = :trip_id AND line_items.item_name ILIKE :query
+            """
+        ), {"trip_id": trip_id, "query": f"%{query}%"}).fetchall()
+        return [{"lineItemId": row.id, "quantity": row.quantity, "price": row.price, "item_name": row.item_name, "tripDescription": row.trip_description} for row in res]

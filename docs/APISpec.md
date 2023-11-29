@@ -138,6 +138,64 @@ https://api.payback.com/v1
     "message": "Group deleted successfully."
   }
   ```
+
+#### Search Line Items - POST /api/groups/{group_id}/search
+- Request Body:
+  ```json
+  {
+    "query": "search_query"
+  }
+  ```
+- Response Body:
+  ```json
+  [
+    {
+      "lineItemId": 1,
+      "quantity": 2,
+      "price": 10.00,
+      "item_name": "Item1",
+      "tripId": 123,
+      "tripDescription": "Grocery shopping"
+    },
+    {
+      "lineItemId": 2,
+      "quantity": 1,
+      "price": 5.00,
+      "item_name": "Item2",
+      "tripId": 124,
+      "tripDescription": "Household Supplies"
+    }
+  ]
+  ```
+
+#### Search Line Items By Trip - POST /api/groups/{group_id}/searchByTrip
+- Request Body:
+  ```json
+  {
+    "trip_id": 123,
+    "query": "search_query"
+  }
+  ```
+- Response Body:
+  ```json
+  [
+    {
+      "lineItemId": 1,
+      "quantity": 2,
+      "price": 10.00,
+      "item_name": "Item1",
+      "tripDescription": "Grocery shopping"
+    },
+    {
+      "lineItemId": 2,
+      "quantity": 1,
+      "price": 5.00,
+      "item_name": "Item2",
+      "tripDescription": "Grocery shopping"
+    }
+  ]
+  ```
+
 ### Expenses
 #### List expenses - GET /api/groups/{group_id}/expenses
 - Response Body:
@@ -212,6 +270,7 @@ https://api.payback.com/v1
   ```
 ### Calculate
 #### Calculate Amount Owed GET /api/groups/{group_id}/calculate**
+** Complex **
 - Response Body:
   ```json
   {
