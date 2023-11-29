@@ -6,7 +6,8 @@ from typing import List
 
 from src import database as db
 from src.database import get_db, Transaction, ShoppingTrip, GroupMember, Group, User
-
+from src.util.validation import validate_user, validate_group
+ 
 router = APIRouter(
     prefix="/trips",
     tags=["trips"],
@@ -82,7 +83,6 @@ class Item(BaseModel):
     optedOut: List[int]
 class AddLineItem(BaseModel):
     userId: int
-    groupId: int
     items: List[Item]
 
 @router.post("/{trip_id}/addItems")
@@ -115,7 +115,14 @@ def add_line_items(body: AddLineItem, group_id: int, trip_id: int):
             VALUES (:desc, :trip, :group_id)
             RETURNING id
             """
-        ), {"desc": "Paid for trip", "trip": trip_id, "group_id": body.group_id}).scalar_one()
+        ), {"desc": "Paid for trip", "trip": trip_id, "group_id": group_id}).scalar_one()
+
+        group_id = connection.execute(sqlalchemy.text(
+            """
+            SELECT group_id FROM shopping_trips
+            WHERE id = :trip_id
+            """
+        ), {"trip_id": trip_id}).scalar_one()
 
         connection.execute(sqlalchemy.text(
             """
@@ -124,7 +131,9 @@ def add_line_items(body: AddLineItem, group_id: int, trip_id: int):
               SELECT :transaction_id, line_item_members.user_id, :from_id, SUM(price * quantity) AS amount
               FROM line_items
               JOIN line_item_members ON line_items.id = line_item_members.line_item_id
+              JOIN group_members ON line_item_members.user_id = group_members.user_id
+              WHERE group_members.group_id = :group_id
               GROUP BY line_item_members.user_id
             """
-        ), {"transaction_id": transaction_id, "from_id": body.userId})
+        ), {"transaction_id": transaction_id, "from_id": body.userId, "group_id": group_id})
         return "OK"

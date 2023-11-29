@@ -61,17 +61,14 @@ def login(username: str, password: str):
             """),
             {"username": username}
         ).first()
-        if result is None:
-            payload = "Incorrect username"
+        if result is None or result.password != password:
+            payload = "Incorrect username or password"
             return {
                 "message": payload
             }
-        if result.password == password:
-            successful = True
-            payload = "User logged in successfully"
-        else:
-            successful = False
-            payload = "Incorrect password"
+        successful = True
+        payload = "User logged in successfully"
+        userId = result.id
         connection.execute(sqlalchemy.text(
                 """
                 INSERT INTO auth_ledger (action, username, email, user_id, successful)
@@ -80,6 +77,7 @@ def login(username: str, password: str):
                 {"action": "LOGIN", "username": username, "email": result.email, "user_id": result.id, "successful": successful}
             )
         
-    return {
-        "message": payload
-    }
+        return {
+            "message": payload,
+            "userId": userId
+        }

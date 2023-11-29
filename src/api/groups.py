@@ -1,35 +1,30 @@
 import sqlalchemy
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from src import database as db
 from src.database import get_db, GroupMember, Group
+from src.util.validation import validate_user, validate_group
 
 router = APIRouter(
     prefix="/groups",
     tags=["groups"],
 )
 
-
-class User(BaseModel):
-    userId: str
-
-
 class Group(BaseModel):
-    userId: str
+    userId: int
     name: str
 
 
-class Body(BaseModel):
-    userId: str
-
-
 @router.post("/")
-def get_user_groups(user: User):
+def get_user_groups(user: Group):
     """
     Gets all groups that the user is in.
     """
+
+    validate_user(user.userId)
+
     with db.engine.begin() as connection:
         groups = connection.execute(sqlalchemy.text(
           """
@@ -38,7 +33,7 @@ def get_user_groups(user: User):
           JOIN group_members ON group_members.group_id = groups.id
           WHERE user_id = :userId
           """
-        ), {"userId": int(user.userId)})
+        ), {"userId": user.userId})
 
     # Convert query results to list of dictionaries as required by the API response format
     json = [{"name": group.name, "groupId": group.id} for group in groups]
@@ -46,29 +41,54 @@ def get_user_groups(user: User):
 
 
 @router.post("/register")
-def create_group(group: Group, db: Session = Depends(get_db)):
-    new_group = Group(name=group.name, owner=int(group.userId))
-    db.add(new_group)
-    db.flush()  # This will assign an ID to new_group without committing the transaction
+def create_group(group: Group):
+        
+    validate_user(group.userId)
 
-    new_group_member = GroupMember(group_id=new_group.id, user_id=new_group.owner)
-    db.add(new_group_member)
+    with db.engine.begin() as connection:
+        group_id = connection.execute(sqlalchemy.text(
+            """
+            INSERT INTO groups (name, owner)
+            VALUES (:name, :owner)
+            RETURNING id
+            """
+        ), {"name": group.name, "owner": group.userId}).scalar_one()
 
-    db.commit()  # Commit both new_group and new_group_member to the database
+        connection.execute(sqlalchemy.text(
+            """
+            INSERT INTO group_members (group_id, user_id)
+            VALUES (:group_id, :user_id)
+            """
+        ), {"group_id": group_id, "user_id": group.userId})
 
-    return {"group_id": new_group.id}
+    return {"group_id": group_id}
 
 
 @router.post("/{group_id}/join")
-def join_group(group_id: int, user_id: int, db: Session = Depends(get_db)):
+def join_group(group_id: int, user_id: int):
     """
     Adds user to group
     """
-    new_group_member = GroupMember(group_id=group_id, user_id=user_id)
-    db.add(new_group_member)
-    db.commit()
+    validate_user(user_id)
+    validate_group(group_id)
 
-    return {"message": "User joined the group successfully."}
+    with db.engine.begin() as connection:
+        inGroup = connection.execute(sqlalchemy.text(
+            """
+            SELECT user_id
+            FROM group_members
+            WHERE user_id = :user_id AND group_id = :group_id
+            """
+        ), {"user_id" : user_id, "group_id" : group_id}).first()
+        if inGroup:
+            raise HTTPException(status_code=400, detail="Already in group.")
+        connection.execute(sqlalchemy.text(
+            """
+            INSERT INTO group_members (group_id, user_id)
+            VALUES (:group_id, :user_id)
+            """
+        ), {"group_id" : group_id, "user_id": user_id})
+        return {"message": "Joined group successfully."}
 
 
 @router.get("/{group_id}/transactions")
@@ -76,6 +96,9 @@ def list_group_transactions(group_id: int):
     """
     Gets all transactions associated with the group.
     """
+
+    validate_group(group_id)
+
     with db.engine.begin() as connection:
         transactions = connection.execute(sqlalchemy.text(
             """
@@ -85,7 +108,6 @@ def list_group_transactions(group_id: int):
             WHERE transactions.group_id = :group_id
             """
         ), {"group_id": group_id})
-
 
         payload = []
         for transaction in transactions:
@@ -99,12 +121,14 @@ def list_group_transactions(group_id: int):
 
         return {"transactions": payload}
 
-
 @router.get("/{group_id}/trips")
 def list_group_trips(group_id: int):
     """
     Gets all shopping trips associated with group
     """
+
+    validate_group(group_id)
+
     with db.engine.begin() as connection:
         trips = connection.execute(sqlalchemy.text(
             """
@@ -131,14 +155,27 @@ def list_group_trips(group_id: int):
 
 
 @router.post("/calculate")
-def calculate(body: Body):
-  with db.engine.begin() as connection:
-    res = connection.execute(sqlalchemy.text(
-        """
-        SELECT line_item_members.user_id, :from_id, SUM(price * quantity) AS amount
-        FROM line_items
-        JOIN line_item_members ON line_items.id = line_item_members.line_item_id
-        GROUP BY line_item_members.user_id
-        """
-    ), {"from_id": int(body.userId)})
+def calculate(user_id, group_id):
+
+    validate_user(user_id)
+
+    with db.engine.begin() as connection:
+        res = connection.execute(sqlalchemy.text(
+            """
+            WITH paid_balance AS (
+            SELECT user_id AS person_id,
+                SUM(CASE WHEN from_id = :user_id AND to_id = user_id THEN change ELSE 0 END) AS amount_paid,
+                SUM(CASE WHEN to_id = :user_id AND from_id = user_id THEN change ELSE 0 END) AS amount_owed
+            FROM transaction_ledger
+            JOIN transactions ON transaction_id = transactions.id
+            JOIN group_members ON transactions.group_id = group_members.group_id
+            WHERE (from_id = :user_id OR to_id = :user_id) AND transactions.group_id = :group_id
+            GROUP BY user_id
+            )
+            SELECT person_id, SUM(amount_owed - amount_paid) AS balance
+            FROM paid_balance
+            WHERE person_id != :user_id
+            GROUP BY person_id
+            """
+        ), {"user_id": user_id, "group_id": group_id})
     return [{"userId": row.user_id, "amount": row.amount} for row in res]

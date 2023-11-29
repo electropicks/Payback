@@ -1,5 +1,5 @@
 import sqlalchemy
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import List
@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 
 from src import database as db
 from src.database import get_db, Transaction, ShoppingTrip, GroupMember, Group, User
+from src.util.validation import validate_user, validate_group, validate_transaction
 
 router = APIRouter(
     prefix="/transactions",
@@ -26,6 +27,9 @@ def add_transaction(newT: Transaction, group_id: int):
     Adds a transaction to the trip.
     Finds groupId from tripId.
     """
+
+    validate_group(group_id)
+
     with db.engine.begin() as connection:
         group_id = connection.execute(sqlalchemy.text(
             """
@@ -49,17 +53,32 @@ def add_transaction(newT: Transaction, group_id: int):
         ), {"transaction_id": transaction_id, "from_id": newT.from_id, "to_id": newT.to_id, "amount":newT.amount})
     return "OK"
 
-@router.post("/{trip_id}/delete")
-def delete_transaction(transaction_id: Transaction):
+@router.post("/delete/{transaction_id}")
+def delete_transaction(transaction_id: int):
     """
-    Deletes transaction from ledger and inserts inverse 
+    Deletes transaction from ledger by inserting inverse 
     """
+
+    validate_transaction(transaction_id)
+
     with db.engine.begin() as connection:
+        result = connection.execute(sqlalchemy.text(
+            """
+            SELECT to_id, from_id, change
+            FROM transactions
+            WHERE id = :transaction_id
+            """
+        ), {"transaction_id": transaction_id}).first()
         connection.execute(sqlalchemy.text(
             """
-            DELETE FROM transactions
+            INSERT INTO transactions ()
             WHERE id = :id
             """
         ), {"id": transaction_id})
+        new_id = connection.execute(sqlalchemy.text(
+            """
+            INSERT INTO transaction_ledger ()
+            """
+        )).scalar_one()
         
-    return "OK"
+    return {"newId": new_id}
