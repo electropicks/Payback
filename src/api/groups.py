@@ -1,11 +1,9 @@
 import sqlalchemy
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 
 from src import database as db
-from src.database import get_db, GroupMember, Group
-from src.util.validation import validate_user, validate_group
+from src.util.validation import validate_user, validate_group, validate_trip
 
 router = APIRouter(
     prefix="/groups",
@@ -34,10 +32,14 @@ def get_user_groups(user: Group):
           WHERE user_id = :userId
           """
         ), {"userId": user.userId})
+    
+        print(f"{user.userId} requested all the groups they are in")
 
-    # Convert query results to list of dictionaries as required by the API response format
-    json = [{"name": group.name, "groupId": group.id} for group in groups]
-    return json
+        # Convert query results to list of dictionaries as required by the API response format
+        json = [{"name": group.name, "groupId": group.id} for group in groups]
+        return json
+
+    raise HTTPException(status_code=400, detail="Failed")
 
 
 @router.post("/register")
@@ -60,8 +62,12 @@ def create_group(group: Group):
             VALUES (:group_id, :user_id)
             """
         ), {"group_id": group_id, "user_id": group.userId})
+    
+        print(f"{group.userId} has created a group with id {group_id}")
 
-    return {"group_id": group_id}
+        return {"group_id": group_id}
+
+    raise HTTPException(status_code=400, detail="Failed")
 
 
 @router.post("/{group_id}/join")
@@ -88,7 +94,9 @@ def join_group(group_id: int, user_id: int):
             VALUES (:group_id, :user_id)
             """
         ), {"group_id" : group_id, "user_id": user_id})
+        print(f"{user_id} has joined group {group_id}")
         return {"message": "Joined group successfully."}
+    raise HTTPException(status_code=400, detail="Failed")
 
 
 @router.get("/{group_id}/transactions")
@@ -109,17 +117,19 @@ def list_group_transactions(group_id: int):
             """
         ), {"group_id": group_id})
 
-        payload = []
-        for transaction in transactions:
-            payload.append({
+        payload = [
+            {
                 "transaction_id": transaction.id,
                 "from_user_id": transaction.from_id,
                 "to_user_id": transaction.to_id,
                 "description": transaction.description,
                 "date": transaction.timestamp
-            })
-
+            }
+            for transaction in transactions
+        ]
+        print(f"Retreieved all transactions for {group_id}")
         return {"transactions": payload}
+    raise HTTPException(status_code=400, detail="Failed")
 
 @router.get("/{group_id}/trips")
 def list_group_trips(group_id: int):
@@ -147,20 +157,27 @@ def list_group_trips(group_id: int):
             ), {"trip_id": trip.id}).scalar_one()
             payload.append({
                 "trip_id": trip.id,
-                "amount": amount,
+                "amount": amount / 100,
                 "description": trip.description,
                 "created_at": trip.created_at
             })
+        print(f"Retreieved all trips for {group_id}")
+
         return {"trips": payload}
+    raise HTTPException(status_code=400, detail="Failed")
 
 
 @router.post("/calculate")
-def calculate(user_id, group_id):
+def calculate(user_id: int, group_id: int):
+    """
+    Calculate how much user owes each group member and how much
+    they are owed by other group members
+    """
 
     validate_user(user_id)
 
     with db.engine.begin() as connection:
-        res = connection.execute(sqlalchemy.text(
+        usersOwed = connection.execute(sqlalchemy.text(
             """
             WITH paid_balance AS (
             SELECT user_id,
@@ -178,7 +195,9 @@ def calculate(user_id, group_id):
             GROUP BY user_id
             """
         ), {"user_id": user_id, "group_id": group_id})
-    return [{"userId": row.user_id, "amount": row.balance} for row in res]
+        print(f"Calculated expenses for {group_id}")
+
+    return [{"userId": row.user_id, "amount": row.balance / 100} for row in usersOwed]
 
 @router.post("/search")
 def search_line_items(group_id: int, query: str):
@@ -188,7 +207,7 @@ def search_line_items(group_id: int, query: str):
     validate_group(group_id)
 
     with db.engine.begin() as connection:
-        res = connection.execute(sqlalchemy.text(
+        line_items = connection.execute(sqlalchemy.text(
             """
             SELECT line_items.id, line_items.quantity, line_items.price, line_items.item_name, shopping_trips.id AS trip_id, shopping_trips.description AS trip_description
             FROM line_items
@@ -196,7 +215,8 @@ def search_line_items(group_id: int, query: str):
             WHERE shopping_trips.group_id = :group_id AND line_items.item_name ILIKE :query
             """
         ), {"group_id": group_id, "query": f"%{query}%"}).fetchall()
-        return [{"lineItemId": row.id, "quantity": row.quantity, "price": row.price, "item_name": row.item_name, "tripId": row.trip_id, "tripDescription": row.trip_description} for row in res]
+        return [{"lineItemId": row.id, "quantity": row.quantity, "price": row.price / 100, "item_name": row.item_name, "tripId": row.trip_id, "tripDescription": row.trip_description} for row in line_items]
+    raise HTTPException(status_code=400, detail="Failed")
         
 @router.post("/searchByTrip")
 def search_line_items_by_trip(trip_id: int, query: str):
@@ -205,12 +225,8 @@ def search_line_items_by_trip(trip_id: int, query: str):
     """
 
     with db.engine.begin() as connection:
-        validTrip = connection.execute(sqlalchemy.text(
-            """
-            SELECT * FROM 
-            """
-        ))
-        res = connection.execute(sqlalchemy.text(
+        validate_trip(trip_id)
+        line_items = connection.execute(sqlalchemy.text(
             """
             SELECT line_items.id, line_items.quantity, line_items.price, line_items.item_name, shopping_trips.description AS trip_description
             FROM line_items
@@ -218,4 +234,5 @@ def search_line_items_by_trip(trip_id: int, query: str):
             WHERE shopping_trips.id = :trip_id AND line_items.item_name ILIKE :query
             """
         ), {"trip_id": trip_id, "query": f"%{query}%"}).fetchall()
-        return [{"lineItemId": row.id, "quantity": row.quantity, "price": row.price, "item_name": row.item_name, "tripDescription": row.trip_description} for row in res]
+        return [{"lineItemId": row.id, "quantity": row.quantity, "price": row.price / 100, "item_name": row.item_name, "tripDescription": row.trip_description} for row in line_items]
+    raise HTTPException(status_code=400, detail="Failed")

@@ -1,12 +1,10 @@
 import sqlalchemy
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 from typing import List
 
 from src import database as db
-from src.database import get_db, Transaction, ShoppingTrip, GroupMember, Group, User
-from src.util.validation import validate_user, validate_group
+from src.util.validation import validate_user, validate_group, validate_trip
  
 router = APIRouter(
     prefix="/trips",
@@ -15,6 +13,9 @@ router = APIRouter(
 
 @router.get("/{trip_id}")
 def get_trip(trip_id: int):
+    """
+    Gets the metadata of a certain trip
+    """
     with db.engine.begin() as connection:
         trip = connection.execute(sqlalchemy.text(
             """
@@ -29,20 +30,28 @@ def get_trip(trip_id: int):
             WHERE line_items.trip_id = :trip_id
             """
         ), {"trip_id": trip_id}).scalar_one()
+        print(f"Retrieved info for {trip_id}")
         return {
             "description": trip.description,
             "amount": amount,
             "createdAt": trip.created_at
         }
+    raise HTTPException(status_code=400, detail="Failed")
 
 class Trip(BaseModel):
     userId: int
-    tripId: int
+    tripId: int | None = None
     groupId: int
-    description: str
+    description: str | None = None
 
 @router.post("/create")
 def create_trip(trip: Trip):
+    """
+    Creates a new shopping trip
+    """
+    
+    validate_group(trip.groupId)
+
     with db.engine.begin() as connection:
         trip_id = connection.execute(sqlalchemy.text(
             """
@@ -51,10 +60,19 @@ def create_trip(trip: Trip):
             RETURNING id
             """
         ), {"desc": trip.description, "payer": trip.userId, "group": trip.groupId}).scalar_one()
+        print(f"Created trip with id {trip_id}")
         return {"tripId": trip_id}
+    raise HTTPException(status_code=400, detail="Failed")
 
 @router.post("/items")
 def trip_items(trip: Trip):
+    """
+    Retrieves all the items from a trip
+    """
+
+    validate_group(trip.groupId)
+    validate_trip(trip.tripId)
+
     with db.engine.begin() as connection:
         returnBody = []
         items = connection.execute(sqlalchemy.text(
@@ -74,7 +92,9 @@ def trip_items(trip: Trip):
                     "Quanity" : item.quantity
                 }
             )
+        print(f"Retreieved trip items for trip {trip.tripId}")
         return returnBody
+    raise HTTPException(status_code=400, detail="Failed")
 
 class Item(BaseModel):
     name: str
@@ -90,6 +110,10 @@ def add_line_items(body: AddLineItem, group_id: int, trip_id: int):
     """
     Adds a list of items to the shopping trip.
     """
+
+    validate_group(group_id)
+    validate_trip(trip_id)
+
     with db.engine.begin() as connection:
         for item in body.items:
             line_item_id = connection.execute(sqlalchemy.text(
@@ -128,7 +152,7 @@ def add_line_items(body: AddLineItem, group_id: int, trip_id: int):
             """
             INSERT INTO transaction_ledger
             (transaction_id, to_id, from_id, change)
-              SELECT :transaction_id, line_item_members.user_id, :from_id, SUM(price * quantity) AS amount
+              SELECT :transaction_id, line_item_members.user_id, :from_id, SUM(price * 100 * quantity) AS amount
               FROM line_items
               JOIN line_item_members ON line_items.id = line_item_members.line_item_id
               JOIN group_members ON line_item_members.user_id = group_members.user_id
@@ -136,10 +160,15 @@ def add_line_items(body: AddLineItem, group_id: int, trip_id: int):
               GROUP BY line_item_members.user_id
             """
         ), {"transaction_id": transaction_id, "from_id": body.userId, "group_id": group_id})
+        print(f"Added trip items to trip {trip_id}")
         return "OK"
+    raise HTTPException(status_code=400, detail="Failed")
 
 @router.post("/{trip_id}/update_item_price")
 def update_item_price(trip_id: int, item_id: int, price: float):
+    """
+    Updates price for an item in a trip
+    """
     with db.engine.connect.execution_options(isolation_level="SERIALIZABLE") as conn:
         with conn.begin() as connection:
             connection.execute(sqlalchemy.text(
@@ -149,5 +178,7 @@ def update_item_price(trip_id: int, item_id: int, price: float):
                 WHERE id = :item_id
                 AND trip_id = :trip_id
                 """
-            ), {"price": price, "item_id": item_id, "trip_id": trip_id})
+            ), {"price": price * 100, "item_id": item_id, "trip_id": trip_id})
+            print(f"Updated id for item {item_id} in {trip_id}")
             return "OK"
+    raise HTTPException(status_code=400, detail="Failed")

@@ -31,11 +31,11 @@ def get_db():
 
 
 print(Base.classes.keys())
-User = Base.classes.users
-Group = Base.classes.groups
-GroupMember = Base.classes.group_members
-ShoppingTrip = Base.classes.shopping_trips
-Transaction = Base.classes.transactions
-TransactionLedger = Base.classes.transaction_ledger
-TripLineItems = Base.classes.line_items
+# User = Base.classes.users
+# Group = Base.classes.groups
+# GroupMember = Base.classes.group_members
+# ShoppingTrip = Base.classes.shopping_trips
+# Transaction = Base.classes.transactions
+# TransactionLedger = Base.classes.transaction_ledger
+# TripLineItems = Base.classes.line_items
 # TripItemMembers = Base.classes.line_item_members
