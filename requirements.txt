@@ -10,7 +10,7 @@ pre-commit
 supabase~=2.0.1
 pydantic~=1.10.13
 starlette~=0.22.0
-httpx~=0.25.2
+httpx
 bcrypt~=4.1.1
 faker
 numpy
