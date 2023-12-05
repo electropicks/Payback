@@ -33,7 +33,7 @@ def get_trip(trip_id: int):
         print(f"Retrieved info for {trip_id}")
         return {
             "description": trip.description,
-            "amount": amount,
+            "amount": amount / 100,
             "createdAt": trip.created_at
         }
     raise HTTPException(status_code=400, detail="Failed")
@@ -88,7 +88,7 @@ def trip_items(trip: Trip):
             returnBody.append(
                 {
                     "Item Name" : item.item_name,
-                    "Price" : item.price,
+                    "Price" : item.price / 100,
                     "Quanity" : item.quantity
                 }
             )
