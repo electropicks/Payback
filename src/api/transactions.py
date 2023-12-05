@@ -1,12 +1,9 @@
 import sqlalchemy
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 from typing import List
-from fastapi.responses import JSONResponse
 
 from src import database as db
-from src.database import get_db, Transaction, ShoppingTrip, GroupMember, Group, User
 from src.util.validation import validate_user, validate_group, validate_transaction
 
 router = APIRouter(
@@ -47,11 +44,12 @@ def add_transaction(newT: Transaction, group_id: int):
         ), {"desc": newT.description, "trip": newT.trip_id, "group_id": group_id}).scalar_one()
         connection.execute(sqlalchemy.text(
             """
-            INSERT INTO transaction_ledger (transaction_id, to_id, from_id, change)
+            INSERT INTO transaction_ledger (transaction_id, to_id, from_id, change * 100)
             VALUES (:transaction_id, :to_id, :from_id, :amount)
             """
-        ), {"transaction_id": transaction_id, "from_id": newT.from_id, "to_id": newT.to_id, "amount":newT.amount})
-    return "OK"
+        ), {"transaction_id": transaction_id, "from_id": newT.from_id, "to_id": newT.to_id, "amount":newT.amount * 100})
+        return {"transactionId" : transaction_id}
+    raise HTTPException(status_code=400, detail="Failed")
 
 @router.post("/delete/{transaction_id}")
 def delete_transaction(transaction_id: int):
@@ -62,7 +60,7 @@ def delete_transaction(transaction_id: int):
     validate_transaction(transaction_id)
 
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text(
+        transaction = connection.execute(sqlalchemy.text(
             """
             SELECT to_id, from_id, change
             FROM transactions
@@ -80,5 +78,6 @@ def delete_transaction(transaction_id: int):
             INSERT INTO transaction_ledger ()
             """
         )).scalar_one()
-        
-    return {"newId": new_id}
+        print(f"{transaction_id} has been deleted")
+        return {"newId": new_id}
+    raise HTTPException(status_code=400, detail="Failed")

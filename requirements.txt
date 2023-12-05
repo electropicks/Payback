@@ -10,3 +10,4 @@ pre-commit
 supabase~=2.0.1
 pydantic~=1.10.13
 starlette~=0.22.0
+bcrypt~=4.1.1
