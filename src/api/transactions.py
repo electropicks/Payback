@@ -23,7 +23,8 @@ def add_transaction(newT: Transaction, group_id: int):
     Adds a transaction to the trip.
     Finds groupId from tripId.
     """
-
+    validate_user(newT.to_id)
+    validate_user(newT.from_id)
     validate_group(group_id)
 
     with db.engine.begin() as connection:

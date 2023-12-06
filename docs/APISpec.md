@@ -1,16 +1,9 @@
 # Payback API Specification
-
-### Base URL
 ```
-https://api.payback.com/v1
+https://payback-app-rjwr.onrender.com/
 ```
-
-### Error Handling
-- The API returns appropriate HTTP status codes and error messages in JSON format for error handling.
-
 
 ## Endpoints
-
 ### Auth
 #### Register New User - POST /api/auth/register
 - Request Body:
@@ -42,47 +35,14 @@ https://api.payback.com/v1
     "message": "Login successful",
   }
   ```
-### User
-#### User profile information - GET /api/users/{user_id}
-- Response Body:
-  ```json
-  {
-    "user_id": 1,
-    "username": "user123",
-    "email": "user123@example.com",
-    "other_field": "other_value"
-  }
-  ```
 
-#### To update user profile information - PUT /api/users/{user_id}
-- Request Body:
-  ```json
-  {
-    "email": "new.email@example.com",
-    "other_field": "new_value"
-  }
-  ```
-- Response Body:
-  ```json
-  {
-    "message": "User profile updated successfully."
-  }
-  ```
-
-#### User account deletion successful - DELETE /api/users/{user_id}
-- Response Body:
-  ```json
-  {
-    "message": "User account deleted successfully."
-  }
-  ```
 ### Group
-#### To create a new group - POST /api/groups
+#### To create a new group - POST /api/groups/register
 - Request Body:
   ```json
   {
-    "group_name": "Household Expenses",
-    "members": [1, 2, 3]  // User IDs of group members
+    "userId": 0, // Group Owner
+    "name": "Groupy Group"
   }
   ```
 - Response Body:
@@ -93,15 +53,7 @@ https://api.payback.com/v1
   }
   ```
 
-#### Group Details - GET /api/groups/{group_id}
-- Response Body:
-  ```json
-  {
-    "group_id": 123,
-    "group_name": "Household Expenses",
-    "members": [1, 2, 3]
-  }
-  ```
+
 
 #### Join a group - POST /api/groups/{group_id}/join
 - Request Body:
@@ -117,25 +69,58 @@ https://api.payback.com/v1
   }
   ```
 
-#### Update group information - PUT /api/groups/{group_id}
-- Request Body:
-  ```json
-  {
-    "group_name": "New Group Name"
-  }
-  ```
+#### Group Transactions - GET /api/groups/{group_id}/transactions
 - Response Body:
   ```json
   {
-    "message": "Group information updated successfully."
+    "transactions": [
+      {
+        "transaction_id": 199,
+        "from_user_id": 121,
+        "to_user_id": 115,
+        "description": "Paid for trip",
+        "date": "2023-12-06T11:18:07.751361+00:00"
+      },
+      {
+        "transaction_id": 200,
+        "from_user_id": 121,
+        "to_user_id": 120,
+        "description": "Paid for trip",
+        "date": "2023-12-06T11:18:07.751361+00:00"
+      }
+  ```
+
+#### Group Trips - GET /api/groups/{group_id}/trips
+- Response Body:
+  ```json
+  {
+    "trips": [
+      {
+        "trip_id": 67,
+        "amount": 8921.44,
+        "description": "To increase town summer election own discussion stop.",
+        "created_at": "2023-07-25T22:58:59.977039+00:00"
+      },
+      {
+        "trip_id": 68,
+        "amount": 10839.46,
+        "description": "Resource culture general.",
+        "created_at": "2022-12-25T10:27:47.236104+00:00"
+      }
+    ]
   }
   ```
 
-#### Group deletion successful - DELETE /api/groups/{group_id}
+#### Calculate Amount Owed GET /api/groups/{group_id}/calculate
+**Complex**
 - Response Body:
   ```json
   {
-    "message": "Group deleted successfully."
+    "balances": {
+      "user1": 10.00,
+      "user2": -5.00,
+      "user3": -5.00
+    }
   }
   ```
 
@@ -169,7 +154,81 @@ https://api.payback.com/v1
   ]
   ```
 
-#### Search Line Items By Trip - POST /api/groups/{group_id}/searchByTrip
+### Trip
+#### Get details of expense - GET /api/trips/{trip_id}
+- Response Body:
+  ```json
+  {
+    "expense_id": 1,
+    "amount": 50.00,
+    "description": "Groceries",
+    "date": "2023-10-18"
+  }
+  ```
+#### Create trip - POST /api/trips/create
+- Request Body:
+  ```json
+  {
+    "userId": 1,
+    "groupId": 2,
+    "description": "Movie night",
+  }
+  ```
+- Response Body:
+  ```json
+  {
+    "tripId": 3
+  }
+  ```
+
+#### Get trip items - GET /api/trips/{trip_id}/items
+- Response Body:
+  ```json
+  [
+    {
+      "Item Name": "Banana",
+      "Price": 44.06,
+      "Quanity": 8
+    }
+  ]
+  ```
+
+#### Add items - POST /api/trips/{trip_id}/addItems
+- Request Body:
+  ```json
+  {
+    "userId": 0,
+    "items": [
+      {
+        "name": "string",
+        "price": 0,
+        "quantity": 0,
+        "optedOut": [
+          0
+        ]
+      }
+    ]
+  }
+  ```
+- Response Body:
+  ```json
+  "OK"
+  ```
+
+#### Update Item Price - POST /api/trips/{trip_id}/update_item_price
+- Request Body:
+  ```json
+  {
+    "item_id": 4,
+    "price": 4.50
+  }
+  ```
+- Response Body:
+  ```json
+  "OK"
+  ```
+
+#### Search Line Items By Trip - POST /api/trips/{trip_id}/search
 **Complex**
 - Request Body:
   ```json
@@ -198,118 +257,8 @@ https://api.payback.com/v1
   ]
   ```
 
-### Expenses
-#### List expenses - GET /api/groups/{group_id}/expenses
-- Response Body:
-  ```json
-  {
-    "expenses": [
-      {
-        "expense_id": 1,
-        "amount": 50.00,
-        "description": "Groceries",
-        "date": "2023-10-18"
-      },
-      {
-        "expense_id": 2,
-        "amount": 30.00,
-        "description": "Dinner",
-        "date": "2023-10-17"
-      }
-    ]
-  }
-  ```
-
-#### Add expense - POST /api/groups/{group_id}/expenses
-- Request Body:
-  ```json
-  {
-    "amount": 25.00,
-    "description": "Movie night",
-    "date": "2023-10-19"
-  }
-  ```
-- Response Body:
-  ```json
-  {
-    "message": "Expense added successfully.",
-    "expense_id": 3
-  }
-  ```
-
-#### Get details of expense - GET /api/groups/{group_id}/expenses/{expense_id}
-- Response Body:
-  ```json
-  {
-    "expense_id": 1,
-    "amount": 50.00,
-    "description": "Groceries",
-    "date": "2023-10-18"
-  }
-  ```
-
-#### Update Expense - PUT /api/groups/{group_id}/expenses/{expense_id}
-- Request Body:
-  ```json
-  {
-    "amount": 55.00,
-    "description": "Grocery shopping"
-  }
-  ```
-- Response Body:
-  ```json
-  {
-    "message": "Expense details updated successfully."
-  }
-  ```
-
-#### Expense deletion - DELETE /api/groups/{group_id}/expenses/{expense_id}
-- Response Body:
-  ```json
-  {
-    "message": "Expense deleted successfully."
-  }
-  ```
-### Calculate
-#### Calculate Amount Owed GET /api/groups/{group_id}/calculate**
-**Complex**
-- Response Body:
-  ```json
-  {
-    "balances": {
-      "user1": 10.00,
-      "user2": -5.00,
-      "user3": -5.00
-    }
-  }
-  ```
-### Payment Transactions
-#### List Payments - GET /api/groups/{group_id}/transactions
-- Response Body:
-  ```json
-  {
-    "transactions": [
-      {
-        "transaction_id": 1,
-        "from_user_id": 1,
-        "to_user_id": 2,
-        "amount": 10.00,
-        "description": "Settling dinner expenses",
-        "date": "2023-10-18"
-      },
-      {
-        "transaction_id": 2,
-        "from_user_id": 3,
-        "to_user_id": 1,
-        "amount": 5.00,
-        "description": "Repayment for groceries",
-        "date": "2023-10-19"
-      }
-    ]
-  }
-  ```
-
-#### Record payment transaction - POST /api/groups/{group_id}/transactions
+### Transaction
+#### Record payment transaction - POST /api/transactions/add
 - Request Body:
   ```json
   {
@@ -327,20 +276,10 @@ https://api.payback.com/v1
   }
   ```
 
-
-#### Delete Payment Transaction - DELETE /api/groups/{group_id}/transactions/{transaction_id}
+#### Delete Payment Transaction - DELETE /api/transactions/{transaction_id}
 - Response Body:
   ```json
   {
-    "message": "Payment transaction deleted successfully."
-  }
-  ```
-
-#### Update Item Price - POST /api/trips/{trip_id}/update_item_price
-- Request Body:
-  ```json
-  {
-    "item_id": 123,
-    "price": 15.50
+    "newId": 7
   }
   ```
