@@ -50,6 +50,32 @@ def validate_trip(tripId):
           SELECT * FROM shopping_trips
           WHERE id = :id
           """
-        ), {"id": tripId})
+        ), {"id": tripId}).first()
         if validTrip is None:
             raise HTTPException(status_code=400, detail="Invalid trip ID")
+
+def validate_user_in_group(userId, groupId):
+    validate_user(userId)
+    validate_group(groupId)
+    with db.engine.begin() as connection:
+        userInGroup = connection.execute(sqlalchemy.text(
+            """
+            SELECT * FROM group_members
+            WHERE group_id = :groupId AND user_id = :userId
+            """
+        ), {"userId": userId, "groupId": groupId}).first()
+        if userInGroup is None:
+            raise HTTPException(status_code=400, detail=f"User {userId} is not in group")
+
+def validate_item_in_trip(tripId, itemId):
+    validate_trip(tripId)
+    with db.engine.begin() as connection:
+        itemInTrip = connection.execute(sqlalchemy.text(
+            """
+            SELECT * FROM line_items
+            WHERE line_items.id = :itemId AND trip_id = :tripId
+            """
+        ), {"itemId": itemId, "tripId": tripId}).first()
+        if itemInTrip is None:
+            raise HTTPException(status_code=400, detail=f"Item {itemId} is not in trip")
+        

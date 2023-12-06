@@ -29,7 +29,7 @@ with engine.begin() as conn:
             TRUNCATE TABLE auth_ledger, group_members, groups, line_item_members, line_items, shopping_trips, transaction_ledger, transactions, users RESTART IDENTITY CASCADE;
     """))
         
-num_users = 360000
+num_users = 36000
 fake = Faker()
 
 with engine.begin() as conn:

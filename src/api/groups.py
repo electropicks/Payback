@@ -3,25 +3,21 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from src import database as db
-from src.util.validation import validate_user, validate_group, validate_trip
+from src.util.validation import validate_user, validate_group, validate_trip, validate_user_in_group
 
 router = APIRouter(
     prefix="/groups",
     tags=["groups"],
 )
 
-class Group(BaseModel):
-    userId: int
-    name: str
 
-
-@router.post("/")
-def get_user_groups(user: Group):
+@router.get("/{userId}")
+def get_user_groups(userId: int):
     """
     Gets all groups that the user is in.
     """
 
-    validate_user(user.userId)
+    validate_user(userId)
 
     with db.engine.begin() as connection:
         groups = connection.execute(sqlalchemy.text(
@@ -31,9 +27,9 @@ def get_user_groups(user: Group):
           JOIN group_members ON group_members.group_id = groups.id
           WHERE user_id = :userId
           """
-        ), {"userId": user.userId})
+        ), {"userId": userId})
     
-        print(f"{user.userId} requested all the groups they are in")
+        print(f"{userId} requested all the groups they are in")
 
         # Convert query results to list of dictionaries as required by the API response format
         json = [{"name": group.name, "groupId": group.id} for group in groups]
@@ -41,6 +37,10 @@ def get_user_groups(user: Group):
 
     raise HTTPException(status_code=400, detail="Failed")
 
+
+class Group(BaseModel):
+    userId: int
+    name: str
 
 @router.post("/register")
 def create_group(group: Group):
@@ -174,7 +174,7 @@ def calculate(user_id: int, group_id: int):
     they are owed by other group members
     """
 
-    validate_user(user_id)
+    validate_user_in_group(user_id, group_id)
 
     with db.engine.begin() as connection:
         usersOwed = connection.execute(sqlalchemy.text(
@@ -199,7 +199,7 @@ def calculate(user_id: int, group_id: int):
 
     return [{"userId": row.user_id, "amount": row.balance / 100} for row in usersOwed]
 
-@router.post("/search")
+@router.post("{group_id}/search")
 def search_line_items(group_id: int, query: str):
     """
     Searches for line items in the group's shopping trips
@@ -218,21 +218,3 @@ def search_line_items(group_id: int, query: str):
         return [{"lineItemId": row.id, "quantity": row.quantity, "price": row.price / 100, "item_name": row.item_name, "tripId": row.trip_id, "tripDescription": row.trip_description} for row in line_items]
     raise HTTPException(status_code=400, detail="Failed")
         
-@router.post("/searchByTrip")
-def search_line_items_by_trip(trip_id: int, query: str):
-    """
-    Searches for line items in the group's shopping trips
-    """
-
-    with db.engine.begin() as connection:
-        validate_trip(trip_id)
-        line_items = connection.execute(sqlalchemy.text(
-            """
-            SELECT line_items.id, line_items.quantity, line_items.price, line_items.item_name, shopping_trips.description AS trip_description
-            FROM line_items
-            JOIN shopping_trips ON line_items.trip_id = shopping_trips.id
-            WHERE shopping_trips.id = :trip_id AND line_items.item_name ILIKE :query
-            """
-        ), {"trip_id": trip_id, "query": f"%{query}%"}).fetchall()
-        return [{"lineItemId": row.id, "quantity": row.quantity, "price": row.price / 100, "item_name": row.item_name, "tripDescription": row.trip_description} for row in line_items]
-    raise HTTPException(status_code=400, detail="Failed")

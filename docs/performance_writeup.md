@@ -22,7 +22,7 @@ We based this on the assumption that average group size would be 4 users, and ea
 
 `POST /api/auth/login` 352 ms
 
-`POST /api/groups` 71 ms
+`GET /api/groups/{user_id}` 71 ms
 
 `POST /api/groups/{group_id}/join` 84 ms
 
@@ -30,7 +30,6 @@ We based this on the assumption that average group size would be 4 users, and ea
 
 `POST /api/groups/{group_id}/search` 122 ms
 
-`POST /api/groups/{group_id}/searchByTrip` 121 ms
 
 `GET /api/groups/{group_id}/trips` 77 ms
 
@@ -41,7 +40,7 @@ We based this on the assumption that average group size would be 4 users, and ea
 
 `POST /api/transactions/add`  45 ms
 
-`POST /api/transactions/delete{transaction_id}` 63 ms
+`POST /api/transactions/delete/{transaction_id}` 63 ms
 
 
 `GET /api/trips/{trip_id}` 63 ms
@@ -54,10 +53,12 @@ We based this on the assumption that average group size would be 4 users, and ea
 
 `POST /api/api/trips/{trip_id}/update_item_price` 42 ms
 
+`POST /api/trips/{trip_id}/search` 121 ms
+
 The three slowest endpoints were   
-`POST /api/auth/login`, @ 352 ms
-`POST /api/groups/calculate`  @ 125 ms
-`POST /api/groups/{group_id}/search`, @ 122 ms
+`POST /api/auth/login` @ 352 ms  
+`POST /api/groups/calculate`  @ 125 ms  
+`POST /api/groups/{group_id}/search` @ 122 ms  
 
 ## Performance Tuning
 ### POST /api/auth/login

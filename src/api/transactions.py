@@ -1,7 +1,6 @@
 import sqlalchemy
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from typing import List
 
 from src import database as db
 from src.util.validation import validate_user, validate_group, validate_transaction
@@ -30,9 +29,9 @@ def add_transaction(newT: Transaction, group_id: int):
     with db.engine.begin() as connection:
         group_id = connection.execute(sqlalchemy.text(
             """
-            SELECT group_id FROM trips
-            JOIN groups ON trips.group_id = groups.id
-            WHERE trip_id = :trip_id
+            SELECT group_id FROM shopping_trips
+            JOIN groups ON shopping_trips.group_id = groups.id
+            WHERE shopping_trips.id = :trip_id
             """
         ), {"trip_id": newT.trip_id}).scalar_one()
         transaction_id = connection.execute(sqlalchemy.text(
@@ -44,7 +43,7 @@ def add_transaction(newT: Transaction, group_id: int):
         ), {"desc": newT.description, "trip": newT.trip_id, "group_id": group_id}).scalar_one()
         connection.execute(sqlalchemy.text(
             """
-            INSERT INTO transaction_ledger (transaction_id, to_id, from_id, change * 100)
+            INSERT INTO transaction_ledger (transaction_id, to_id, from_id, change)
             VALUES (:transaction_id, :to_id, :from_id, :amount)
             """
         ), {"transaction_id": transaction_id, "from_id": newT.from_id, "to_id": newT.to_id, "amount":newT.amount * 100})
@@ -68,14 +67,23 @@ def delete_transaction(transaction_id: int):
             WHERE transactions.id = :transaction_id
             """
         ), {"transaction_id": transaction_id})
+        ids = connection.execute(sqlalchemy.text("""
+            SELECT trip_id, group_id
+            FROM transactions
+            JOIN transaction_ledger ON transaction_ledger.transaction_id = transactions.id
+            WHERE transactions.id = :transaction_id
+            LIMIT 1
+        """), {"transaction_id": transaction_id}).first()
+
         new_id = connection.execute(sqlalchemy.text(
             """
             INSERT INTO transactions (description, trip_id, group_id)
             VALUES (:desc, :trip, :group)
+            RETURNING id
             """
-        ), {"desc": "Reverted transaction", "trip": transaction.trip_id, "group": transaction.group_id}).scalar_one()
+        ), {"desc": "Reverted transaction", "trip": ids.trip_id, "group": ids.group_id}).scalar_one()
         for row in transaction:
-            new_transaction = connection.execute(sqlalchemy.text(
+            connection.execute(sqlalchemy.text(
                 """
                 INSERT INTO transaction_ledger (to_id, from_id, change, transaction_id)
                 VALUES (:to_id, :from_id, :change, :transaction_id)
@@ -83,6 +91,7 @@ def delete_transaction(transaction_id: int):
                 """
             ), {"to_id": row.to_id,
                 "from_id": row.from_id,
+                "transaction_id": new_id,
                 "change": -row.change}).scalar_one()
         print(f"{transaction_id} has been deleted")
         return {"newId": new_id}
