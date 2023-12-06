@@ -1,53 +1,33 @@
-### Updating Trip Line Item:
-Lost Updates: If two transactions concurrently read and then update a line item, one of the updates could overwrite the other, leading to a loss of data. To prevent this, we could set it to Serializable isolation level, in which transactions are executed in a way that provides the illusion that they are the only transactions interacting with the data. This prevents phenomena like lost updates by ensuring that the updates are not overwritten by other transactions.
+### Retrieving Line Items While New Ones are Added:
+Dirty Read: A user A may want to add some new line items to a trip. Meanwhile, user B may try to retrieve the current line items, and read uncommited data from user A's transaction (which later gets rolled back due to some error). This is a dirty read.
 
 ```mermaid
 sequenceDiagram
-    participant T1
+    participant trips/{trip_id}/addItems
     participant Database
-    participant T2
+    participant trips/{trip_id}/items
 
-    T1->>Database: Read value (10)
-    T2->>Database: Read value (10)
-    T1->>Database: Update value to 15
-    T1->>Database: Commit change
-    T2->>Database: Update value to 12
-    T2->>Database: Commit change
-    Note right of Database: Update from T1 is lost
+    trips/{trip_id}/addItems->>Database: Write to line_items
+    trips/{trip_id}/items->>Database: Read from line_items
+    Note right of Database: Dirty read
+    trips/{trip_id}/addItems->>Database: Commit changes
 ```
 
-### Search Line Items
-Phantom Reads: This phenomenon, possible in 'REPEATABLE READ' isolation, refers to a transaction noticing new rows being added to the dataset it has queried. In your case, if the transaction involves reading groups or members and then repeats this read, it might find new groups or members that were not present in the initial read. To prevent this phenomenon, the isolation level has to be set to Serializable.
+### Calculate Dirty Read
+Dirty Read: This is not possible with our implementation of our calculate endpoint, but if it were implemented in such a way that there were two separate SELECT statements, one to retrieve a user's total owed to their group members, and another to retrieve their total paid to their group members, which would then be added together to get the overall balance with each other member in their group, a dirty read could occur:
+User A tries to calculate their current balance with their group, and the amount paid to others is read from the transaction ledger. Meanwhile, user B decides to pay user A back, writing to the transaction_ledger. User A then reads the amount owed to others from the transaction_ledger, which is now different due to user B's write. However, user B's transaction gets rolled back, and user A is left with a dirty read. 
 
 ```mermaid
 sequenceDiagram
-    participant T1 as Transaction 1
-    participant DB as Database
-    participant T2 as Transaction 2
-
-    Note over T1, DB: Transaction 1 begins
-    T1->>DB: Read groups/members
-    Note over DB: Returns initial dataset
-
-    T2->>DB: Inserts new rows
-    
-    T1->>DB: Repeat Read groups/members
-    Note over DB: Returns dataset with new rows
-    Note over T1, DB: Transaction 1 notices new rows (Phantom Reads)
-```
-
-### List Expenses
-Dirty Reads: If this endpoint retrieves a list of expenses while another transaction is adding, updating, or deleting an expense, and that transaction is rolled back, it could lead to dirty reads. Since the default isolation level in postgres is Read Committed, this phenomena will be prevented.
-
-```mermaid
-sequenceDiagram
-    participant T1
+    participant groups/calculate
     participant Database
-    participant T2
+    participant transactions/add
 
-    T1->>Database: Start transaction
-    T1->>Database: Update value from 10 to 15
-    T2->>Database: Read value (gets 15)
-    T1->>Database: Rollback transaction (revert to 10)
-    Note right of T2: T2 has dirty read (value 15)
+    groups/calculate->>Database: Read amounts paid to others from transaction_ledger 
+    transactions/add->>Database: Write to transaction_ledger
+    groups/calculate->>Database: Read amounts owed to others from transaction_ledger
+    Note right of Database: Dirty read
+    transactions/add->>Database: Commit changes
 ```
+
+
