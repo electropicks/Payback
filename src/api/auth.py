@@ -24,8 +24,20 @@ def register(username: str, password: str, email: str):
             """),
             {"username": username}
         )
+        unqEmail = connection.execute(sqlalchemy.text(
+            """
+            SELECT * FROM users
+            WHERE email = :email
+            """),
+            {"email": email}
+        )
         if unqUsername.rowcount > 0:
             payload = "Username already taken"
+            return {
+                "message": payload
+            }
+        elif unqEmail.rowcount > 0:
+            payload = "Email already taken"
             return {
                 "message": payload
             }
