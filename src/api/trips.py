@@ -127,7 +127,7 @@ def add_line_items(body: AddLineItem, trip_id: int):
                 VALUES (:name, :price, :quantity, :trip_id)
                 RETURNING id
                 """
-            ), {"name": item.name, "price": item.price, "quantity": item.quantity, "trip_id": trip_id}).scalar_one()
+            ), {"name": item.name, "price": item.price * 100, "quantity": item.quantity, "trip_id": trip_id}).scalar_one()
             for user in item.optedOut:
                 if user not in validated_users:
                     validate_user_in_group(user, group_id)
@@ -136,7 +136,7 @@ def add_line_items(body: AddLineItem, trip_id: int):
                 """
                 INSERT INTO line_item_members (user_id, line_item_id)
                 SELECT user_id, :line_item_id FROM group_members
-                WHERE (user_id != ANY(:optout)
+                WHERE (user_id <> ALL(:optout)
                 OR :optout is null)
                 AND group_id = :group_id
                 """
@@ -152,12 +152,21 @@ def add_line_items(body: AddLineItem, trip_id: int):
 
         connection.execute(sqlalchemy.text(
             """
-            INSERT INTO transaction_ledger
-            (transaction_id, to_id, from_id, change)
-              SELECT :transaction_id, line_item_members.user_id, :from_id, SUM(price * 100 * quantity) AS amount
+            WITH T1 AS(
+              SELECT line_item_id, COUNT(DISTINCT line_item_members.user_id) cnt
               FROM line_items
               JOIN line_item_members ON line_items.id = line_item_members.line_item_id
               JOIN group_members ON line_item_members.user_id = group_members.user_id
+              WHERE group_members.group_id = :group_id
+              GROUP BY line_item_id
+            )
+            INSERT INTO transaction_ledger
+            (transaction_id, to_id, from_id, change)
+              SELECT :transaction_id, line_item_members.user_id, :from_id, SUM((price * quantity)/cnt) AS amount
+              FROM line_items
+              JOIN line_item_members ON line_items.id = line_item_members.line_item_id
+              JOIN group_members ON line_item_members.user_id = group_members.user_id
+              JOIN T1 ON T1.line_item_id = line_items.id
               WHERE group_members.group_id = :group_id
               GROUP BY line_item_members.user_id
             """
