@@ -44,10 +44,11 @@ class Group(BaseModel):
 
 @router.post("/register")
 def create_group(group: Group):
-        
+  
     validate_user(group.userId)
 
     with db.engine.begin() as connection:
+
         group_id = connection.execute(sqlalchemy.text(
             """
             INSERT INTO groups (name, owner)
@@ -189,7 +190,7 @@ def calculate(user_id: int, group_id: int):
             WHERE (from_id = :user_id OR to_id = :user_id) AND transactions.group_id = :group_id
             GROUP BY user_id
             )
-            SELECT user_id, SUM(amount_owed - amount_paid) AS balance
+            SELECT user_id, SUM(amount_owed - amount_paid)/100 AS balance
             FROM paid_balance
             WHERE user_id != :user_id
             GROUP BY user_id
