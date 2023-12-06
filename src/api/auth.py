@@ -85,7 +85,7 @@ def login(username: str, password: str):
                 """),
                 {"action": "LOGIN", "username": username, "email": user.email, "user_id": user.id, "successful": successful}
             )
-        print(f"User {userId} has signed in")
+        print(f"User {userId} ({username}) signed in")
         
         return {
             "message": payload,

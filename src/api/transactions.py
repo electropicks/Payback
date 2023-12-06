@@ -62,22 +62,28 @@ def delete_transaction(transaction_id: int):
     with db.engine.begin() as connection:
         transaction = connection.execute(sqlalchemy.text(
             """
-            SELECT to_id, from_id, change
+            SELECT to_id, from_id, change, group_id, trip_id
             FROM transactions
-            WHERE id = :transaction_id
+            JOIN transaction_ledger ON transaction_ledger.transaction_id = transactions.id
+            WHERE transactions.id = :transaction_id
             """
-        ), {"transaction_id": transaction_id}).first()
-        connection.execute(sqlalchemy.text(
-            """
-            INSERT INTO transactions ()
-            WHERE id = :id
-            """
-        ), {"id": transaction_id})
+        ), {"transaction_id": transaction_id})
         new_id = connection.execute(sqlalchemy.text(
             """
-            INSERT INTO transaction_ledger ()
+            INSERT INTO transactions (description, trip_id, group_id)
+            VALUES (:desc, :trip, :group)
             """
-        )).scalar_one()
+        ), {"desc": "Reverted transaction", "trip": transaction.trip_id, "group": transaction.group_id}).scalar_one()
+        for row in transaction:
+            new_transaction = connection.execute(sqlalchemy.text(
+                """
+                INSERT INTO transaction_ledger (to_id, from_id, change, transaction_id)
+                VALUES (:to_id, :from_id, :change, :transaction_id)
+                RETURNING id
+                """
+            ), {"to_id": row.to_id,
+                "from_id": row.from_id,
+                "change": -row.change}).scalar_one()
         print(f"{transaction_id} has been deleted")
         return {"newId": new_id}
     raise HTTPException(status_code=400, detail="Failed")
