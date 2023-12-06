@@ -66,7 +66,7 @@ def create_trip(trip: Trip):
         return {"tripId": trip_id}
     raise HTTPException(status_code=400, detail="Failed")
 
-@router.get("{trip_id}/items")
+@router.get("/{trip_id}/items")
 def trip_items(trip_id: int):
     """
     Retrieves all the items from a trip
