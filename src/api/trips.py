@@ -36,7 +36,7 @@ def get_trip(trip_id: int):
         print(f"Retrieved info for {trip_id}")
         return {
             "description": trip.description,
-            "amount": amount / 100,
+            "amount": amount / 100 if amount else 0,
             "createdAt": trip.created_at
         }
     raise HTTPException(status_code=400, detail="Failed")
